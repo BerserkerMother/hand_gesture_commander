@@ -13,7 +13,7 @@ class GestureNet(nn.Module):
         self.fc5 = nn.Linear(128, 64)
         self.classifier = nn.Linear(64, num_classes)
 
-        dropout_p = 0.2
+        dropout_p = 0.3
         self.dropout1 = nn.Dropout(p=dropout_p)
         self.dropout2 = nn.Dropout(p=dropout_p)
         self.dropout3 = nn.Dropout(p=dropout_p)

@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torch.utils import data
+from torch.utils.mobile_optimizer import optimize_for_mobile
 
 from model import GestureNet
 from data import HandGesture
@@ -33,10 +34,11 @@ def main():
     for e in range(1000):
         train_acc = train(model, optimizer, train_loader, e)
         val_acc = val(model, val_loader, e)
-        print(train_acc)
-        print(val_acc)
+        print("train accuracy: ", train_acc)
+        print("val accuracy", val_acc)
 
-    torch.save(model, "model.pth")
+    model = script_and_quantize(model.cpu())
+    model.save("model.pth")
 
 
 def train(model, optimizer, data_loader, e):
@@ -79,7 +81,6 @@ def val(model, data_loader, e):
 
         with torch.no_grad():
             logits = model(features)
-            loss = F.cross_entropy(logits, target)
 
         prediction = logits.max(1)[1]
         num_correct = (prediction == target).sum()
@@ -89,14 +90,21 @@ def val(model, data_loader, e):
 
 
 def infer(model, features):
-    model.eval().cuda()
+    model.eval()
     features = torch.tensor(features,
-                            dtype=torch.float,
-                            device=torch.device("cuda")).unsqueeze(0)
+                            dtype=torch.float).unsqueeze(0)
     output = model(features)
     prediction = output.max(1)[1].item()
 
     return prediction
+
+
+# TODO: add quantization
+def script_and_quantize(model):
+    torchscript_model = torch.jit.script(model)
+    # torchscript_model = optimize_for_mobile(torchscript_model)
+
+    return torchscript_model
 
 
 if __name__ == '__main__':
